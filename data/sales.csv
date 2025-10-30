@@ -1,0 +1,2 @@
+saleId,customerType,customerName,totalAmount,discountAmount,finalAmount,paymentType,timestamp
+TXN1761848393612,Regular,John Doe,340.00,0.00,340.00,CashPayment,2025-10-30T23:49:53.616504511

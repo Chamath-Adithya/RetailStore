@@ -203,6 +203,10 @@ public class App extends Application {
         BorderPane root = new BorderPane();
         root.setTop(menuBar);
 
+        // Create observable lists for proper data binding
+        ObservableList<Product> inventoryObservable = FXCollections.observableArrayList(inventory);
+        ObservableList<Product> cartObservable = FXCollections.observableArrayList(cart);
+
         // Inventory Table
         TableView<Product> inventoryTable = new TableView<>();
         TableColumn<Product, String> nameCol = new TableColumn<>("Name");
@@ -212,10 +216,10 @@ public class App extends Application {
         TableColumn<Product, Integer> stockCol = new TableColumn<>("Stock");
         stockCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         inventoryTable.getColumns().addAll(nameCol, priceCol, stockCol);
-        inventoryTable.setItems(FXCollections.observableArrayList(inventory));
+        inventoryTable.setItems(inventoryObservable);
 
         Button btnAddToCart = new Button("Add to Cart");
-        btnAddToCart.setOnAction(e -> addToCart(inventoryTable));
+        btnAddToCart.setOnAction(e -> addToCart(inventoryTable, inventoryObservable, cartObservable));
 
         VBox inventoryPanel = new VBox(10, new Label("Inventory"), inventoryTable, btnAddToCart);
         inventoryPanel.setPadding(new Insets(10));
@@ -232,16 +236,16 @@ public class App extends Application {
         cartQtyCol.setOnEditCommit(event -> {
             Product item = event.getRowValue();
             int newQuantity = event.getNewValue();
-            updateCartQuantity(item, newQuantity, cartTable, inventoryTable);
+            updateCartQuantity(item, newQuantity, cartTable, inventoryTable, cartObservable, inventoryObservable);
         });
         TableColumn<Product, Double> cartTotalCol = new TableColumn<>("Total");
         cartTotalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
         cartTable.getColumns().addAll(cartNameCol, cartPriceCol, cartQtyCol, cartTotalCol);
-        cartTable.setItems(FXCollections.observableArrayList(cart));
+        cartTable.setItems(cartObservable);
         cartTable.setEditable(true);
 
         Button btnRemoveFromCart = new Button("Remove from Cart");
-        btnRemoveFromCart.setOnAction(e -> removeFromCart(cartTable, inventoryTable));
+        btnRemoveFromCart.setOnAction(e -> removeFromCart(cartTable, inventoryTable, cartObservable, inventoryObservable));
 
         VBox cartPanel = new VBox(10, new Label("Cart"), cartTable, btnRemoveFromCart);
         cartPanel.setPadding(new Insets(10));
@@ -259,7 +263,7 @@ public class App extends Application {
         Button btnCheckout = new Button("Checkout");
         btnCheckout.setOnAction(e -> checkout(txtCustomerName.getText(),
                 cmbCustomerType.getValue(),
-                cmbPaymentType.getValue(), cartTable, inventoryTable));
+                cmbPaymentType.getValue(), cartTable, inventoryTable, cartObservable, inventoryObservable));
 
         HBox bottomPanel = new HBox(10, new Label("Customer Name:"), txtCustomerName,
                 cmbCustomerType, cmbPaymentType, btnCheckout);
@@ -273,7 +277,7 @@ public class App extends Application {
         primaryStage.show();
     }
 
-    private static void updateCartQuantity(Product item, int newQuantity, TableView<Product> cartTable, TableView<Product> inventoryTable) {
+    private static void updateCartQuantity(Product item, int newQuantity, TableView<Product> cartTable, TableView<Product> inventoryTable, ObservableList<Product> cartObservable, ObservableList<Product> inventoryObservable) {
         int oldQuantity = item.getQuantity();
         int quantityDifference = newQuantity - oldQuantity;
 
@@ -296,13 +300,14 @@ public class App extends Application {
                     Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
                     int cartIndex = cart.indexOf(item);
                     cart.set(cartIndex, updatedItem);
+                    cartObservable.set(cartIndex, updatedItem);
 
                     // Update inventory
                     Product updatedInventory = new Product(inventoryProduct.getName(),
                         inventoryProduct.getPrice(),
                         inventoryProduct.getQuantity() - quantityDifference);
                     inventory.set(inventoryIndex, updatedInventory);
-                    inventoryTable.refresh();
+                    inventoryObservable.set(inventoryIndex, updatedInventory);
                 } else {
                     // Not enough stock, reset to old quantity
                     cartTable.refresh();
@@ -317,6 +322,7 @@ public class App extends Application {
                 Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
                 int cartIndex = cart.indexOf(item);
                 cart.set(cartIndex, updatedItem);
+                cartObservable.set(cartIndex, updatedItem);
 
                 // Return stock to inventory
                 for (int i = 0; i < inventory.size(); i++) {
@@ -326,7 +332,7 @@ public class App extends Application {
                             inventoryProduct.getPrice(),
                             inventoryProduct.getQuantity() - quantityDifference); // quantityDifference is negative, so this adds
                         inventory.set(i, updatedInventory);
-                        inventoryTable.refresh();
+                        inventoryObservable.set(i, updatedInventory);
                         break;
                     }
                 }
@@ -335,6 +341,7 @@ public class App extends Application {
                 Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
                 int cartIndex = cart.indexOf(item);
                 cart.set(cartIndex, updatedItem);
+                cartObservable.set(cartIndex, updatedItem);
             }
         } else {
             // If invalid quantity, reset
@@ -342,17 +349,21 @@ public class App extends Application {
         }
     }
 
-    private static void addToCart(TableView<Product> inventoryTable) {
+    private static void addToCart(TableView<Product> inventoryTable, ObservableList<Product> inventoryObservable, ObservableList<Product> cartObservable) {
         Product selectedProduct = inventoryTable.getSelectionModel().getSelectedItem();
         if (selectedProduct != null) {
             if (selectedProduct.getQuantity() > 0) {
                 // Simple add, in real app would handle quantity selection
                 Product cartItem = new Product(selectedProduct.getName(), selectedProduct.getPrice(), 1);
                 cart.add(cartItem);
+                cartObservable.add(cartItem);
                 int inventoryIndex = inventory.indexOf(selectedProduct);
-                Product updatedProduct = new Product(selectedProduct.getName(), selectedProduct.getPrice(), selectedProduct.getQuantity() - 1);
-                inventory.set(inventoryIndex, updatedProduct);
-                inventoryTable.refresh();
+                if (inventoryIndex >= 0) {
+                    Product updatedProduct = new Product(selectedProduct.getName(), selectedProduct.getPrice(), selectedProduct.getQuantity() - 1);
+                    inventory.set(inventoryIndex, updatedProduct);
+                    inventoryObservable.set(inventoryIndex, updatedProduct);
+                    System.out.println("Added " + cartItem.getName() + " to cart. Cart size: " + cart.size());
+                }
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Out of Stock");
@@ -360,27 +371,34 @@ public class App extends Application {
                 alert.setContentText("Out of stock!");
                 alert.showAndWait();
             }
+        } else {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("No Selection");
+            alert.setHeaderText(null);
+            alert.setContentText("Please select a product from the inventory first!");
+            alert.showAndWait();
         }
     }
 
-    private static void removeFromCart(TableView<Product> cartTable, TableView<Product> inventoryTable) {
+    private static void removeFromCart(TableView<Product> cartTable, TableView<Product> inventoryTable, ObservableList<Product> cartObservable, ObservableList<Product> inventoryObservable) {
         Product selectedProduct = cartTable.getSelectionModel().getSelectedItem();
         if (selectedProduct != null) {
             cart.remove(selectedProduct);
+            cartObservable.remove(selectedProduct);
             // Return to inventory
             for (int i = 0; i < inventory.size(); i++) {
                 if (inventory.get(i).getName().equals(selectedProduct.getName())) {
                     Product p = inventory.get(i);
                     Product updated = new Product(p.getName(), p.getPrice(), p.getQuantity() + selectedProduct.getQuantity());
                     inventory.set(i, updated);
-                    inventoryTable.refresh();
+                    inventoryObservable.set(i, updated);
                     break;
                 }
             }
         }
     }
 
-    private static void checkout(String customerName, String customerType, String paymentType, TableView<Product> cartTable, TableView<Product> inventoryTable) {
+    private static void checkout(String customerName, String customerType, String paymentType, TableView<Product> cartTable, TableView<Product> inventoryTable, ObservableList<Product> cartObservable, ObservableList<Product> inventoryObservable) {
         if (cart.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Empty Cart");
@@ -419,7 +437,7 @@ public class App extends Application {
         alert.showAndWait();
 
         cart.clear();
-        cartTable.refresh();
+        cartObservable.clear();
     }
 
     private static void showAddProductDialog(Stage primaryStage) {

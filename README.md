@@ -1,6 +1,6 @@
-# Retail Store Management System (GUI Edition)
+# Retail Store Management System (JavaFX Edition)
 
-A comprehensive Java Swing application demonstrating Object-Oriented Programming (OOP) concepts through a retail store management system with login, inventory management, and transaction processing.
+A comprehensive JavaFX application demonstrating Object-Oriented Programming (OOP) concepts through a retail store management system with login, inventory management, and transaction processing. **Successfully converted from Swing to JavaFX!**
 
 ## 🧱 Project Structure
 
@@ -282,15 +282,46 @@ public class Sale {
 | **Readability** | Code structure reflects real-world relationships |
 | **Reliability** | Type safety and encapsulation prevent bugs |
 
-## 🏃 How to Run
+## 🏃 How to Run (JavaFX Edition)
 
-In VS Code terminal:
+### **Prerequisites:**
+- Java 11 or higher
+- JavaFX runtime libraries
+
+### **Method 1: With JavaFX Installed (Recommended)**
 
 ```bash
-javac -d bin src/App.java src/model/*.java src/payment/*.java src/util/*.java src/service/*.java src/gui/*.java
-cd bin
-java App
+# Compile the application
+javac --module-path /usr/share/openjfx/lib --add-modules javafx.controls,javafx.fxml -d bin src/module-info.java src/model/*.java src/payment/*.java src/service/*.java src/util/*.java src/App.java
+
+# Run the application
+java --module-path /usr/share/openjfx/lib:bin --add-modules javafx.controls,javafx.fxml -m RetailStore/retailstore.App
 ```
+
+### **Method 2: Download JavaFX SDK**
+
+```bash
+# Download JavaFX SDK
+wget https://download2.gluonhq.com/openjfx/17.0.2/openjfx-17.0.2_linux-x64_bin-sdk.zip
+unzip openjfx-17.0.2_linux-x64_bin-sdk.zip
+
+# Compile with JavaFX
+javac --module-path ./javafx-sdk-17.0.2/lib --add-modules javafx.controls,javafx.fxml -d bin src/module-info.java src/model/*.java src/payment/*.java src/service/*.java src/util/*.java src/App.java
+
+# Run with JavaFX
+java --module-path ./javafx-sdk-17.0.2/lib:bin --add-modules javafx.controls,javafx.fxml -m RetailStore/retailstore.App
+```
+
+### **Method 3: Using IDE (IntelliJ IDEA/VS Code)**
+
+1. **Install JavaFX Plugin** (if needed)
+2. **VM Options**: `--module-path /path/to/javafx/lib --add-modules javafx.controls,javafx.fxml`
+3. **Main Class**: `retailstore.App`
+4. **Run** the application
+
+### **Default Login Credentials:**
+- **Admin**: `admin` / `admin123`
+- **Cashier**: `cashier` / `cash123`
 
 ## 🎯 Features
 
