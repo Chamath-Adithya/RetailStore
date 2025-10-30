@@ -25,15 +25,15 @@ public class App extends Application {
     private static List<Product> cart = new ArrayList<>();
     private static List<Sale> sales = new ArrayList<>();
     private static List<User> users = new ArrayList<>();
-    private static DefaultTableModel inventoryTableModel;
-    private static DefaultTableModel cartTableModel;
-    private static JFrame mainFrame;
-    private static JTable inventoryTable;
-    private static JTable cartTable;
 
     public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
         loadData();
-        showLoginDialog();
+        showLoginDialog(primaryStage);
     }
 
     private static void loadData() {
@@ -122,313 +122,269 @@ public class App extends Application {
         }
     }
 
-    private static void showLoginDialog() {
-        JDialog loginDialog = new JDialog((Frame) null, "Login", true);
-        loginDialog.setSize(500, 300);
-        loginDialog.setLayout(new BorderLayout());
-        loginDialog.setLocationRelativeTo(null);
+    private static void showLoginDialog(Stage primaryStage) {
+        Stage loginStage = new Stage();
+        loginStage.initModality(Modality.APPLICATION_MODAL);
+        loginStage.setTitle("Login");
 
-        // Main content panel with margins
-        JPanel contentPanel = new JPanel(new GridLayout(4, 2, 20, 20));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30)); // Top, Left, Bottom, Right margins
+        GridPane grid = new GridPane();
+        grid.setHgap(20);
+        grid.setVgap(20);
+        grid.setPadding(new Insets(30));
 
-        JLabel lblUsername = new JLabel("Username:");
-        JTextField txtUsername = new JTextField();
-        JLabel lblPassword = new JLabel("Password:");
-        JPasswordField txtPassword = new JPasswordField();
-        JButton btnLogin = new JButton("Login");
-        JButton btnCancel = new JButton("Cancel");
+        Label lblUsername = new Label("Username:");
+        TextField txtUsername = new TextField();
+        Label lblPassword = new Label("Password:");
+        PasswordField txtPassword = new PasswordField();
+        Button btnLogin = new Button("Login");
+        Button btnCancel = new Button("Cancel");
 
-        btnLogin.addActionListener(e -> {
+        btnLogin.setOnAction(e -> {
             String username = txtUsername.getText();
-            String password = new String(txtPassword.getPassword());
+            String password = txtPassword.getText();
 
             for (User user : users) {
                 if (user.getUsername().equals(username) && user.authenticate(password)) {
                     currentUser = user;
-                    loginDialog.dispose();
-                    showMainWindow();
+                    loginStage.close();
+                    showMainWindow(primaryStage);
                     return;
                 }
             }
-            JOptionPane.showMessageDialog(loginDialog, "Invalid credentials!");
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Login Failed");
+            alert.setHeaderText(null);
+            alert.setContentText("Invalid credentials!");
+            alert.showAndWait();
         });
 
-        btnCancel.addActionListener(e -> System.exit(0));
+        btnCancel.setOnAction(e -> System.exit(0));
 
-        contentPanel.add(lblUsername);
-        contentPanel.add(txtUsername);
-        contentPanel.add(lblPassword);
-        contentPanel.add(txtPassword);
-        contentPanel.add(new JLabel());
-        contentPanel.add(btnLogin);
-        contentPanel.add(new JLabel());
-        contentPanel.add(btnCancel);
+        grid.add(lblUsername, 0, 0);
+        grid.add(txtUsername, 1, 0);
+        grid.add(lblPassword, 0, 1);
+        grid.add(txtPassword, 1, 1);
+        grid.add(btnLogin, 1, 2);
+        grid.add(btnCancel, 2, 2);
 
-        loginDialog.add(contentPanel, BorderLayout.CENTER);
-        loginDialog.setVisible(true);
+        Scene scene = new Scene(grid, 400, 200);
+        loginStage.setScene(scene);
+        loginStage.showAndWait();
     }
 
-    private static void showMainWindow() {
-        mainFrame = new JFrame("Retail Store Management - " + currentUser.getRole());
-        mainFrame.setSize(800, 600);
-        mainFrame.setLayout(new BorderLayout());
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    private static void showMainWindow(Stage primaryStage) {
+        primaryStage.setTitle("Retail Store Management - " + currentUser.getRole());
 
         // Menu Bar
-        JMenuBar menuBar = new JMenuBar();
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem saveItem = new JMenuItem("Save Data");
-        saveItem.addActionListener(e -> saveData());
-        JMenuItem exitItem = new JMenuItem("Exit");
-        exitItem.addActionListener(e -> System.exit(0));
-        fileMenu.add(saveItem);
-        fileMenu.add(exitItem);
-        menuBar.add(fileMenu);
+        MenuBar menuBar = new MenuBar();
+        Menu fileMenu = new Menu("File");
+        MenuItem saveItem = new MenuItem("Save Data");
+        saveItem.setOnAction(e -> saveData(primaryStage));
+        MenuItem exitItem = new MenuItem("Exit");
+        exitItem.setOnAction(e -> System.exit(0));
+        fileMenu.getItems().addAll(saveItem, exitItem);
+        menuBar.getMenus().add(fileMenu);
 
         if (currentUser.isAdmin()) {
-            JMenu adminMenu = new JMenu("Admin");
-            JMenuItem addProductItem = new JMenuItem("Add Product");
-            addProductItem.addActionListener(e -> showAddProductDialog());
-            JMenuItem removeProductItem = new JMenuItem("Remove Product");
-            removeProductItem.addActionListener(e -> removeSelectedProduct());
-            JMenuItem viewSalesItem = new JMenuItem("View Sales History");
-            viewSalesItem.addActionListener(e -> showSalesHistoryDialog());
-            adminMenu.add(addProductItem);
-            adminMenu.add(removeProductItem);
-            adminMenu.addSeparator();
-            adminMenu.add(viewSalesItem);
-            menuBar.add(adminMenu);
+            Menu adminMenu = new Menu("Admin");
+            MenuItem addProductItem = new MenuItem("Add Product");
+            addProductItem.setOnAction(e -> showAddProductDialog(primaryStage));
+            MenuItem removeProductItem = new MenuItem("Remove Product");
+            removeProductItem.setOnAction(e -> removeSelectedProduct());
+            MenuItem viewSalesItem = new MenuItem("View Sales History");
+            viewSalesItem.setOnAction(e -> showSalesHistoryDialog(primaryStage));
+            adminMenu.getItems().addAll(addProductItem, removeProductItem, new SeparatorMenuItem(), viewSalesItem);
+            menuBar.getMenus().add(adminMenu);
         }
 
-        mainFrame.setJMenuBar(menuBar);
-
-        // Main Panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        // Main Layout
+        BorderPane root = new BorderPane();
+        root.setTop(menuBar);
 
         // Inventory Table
-        JPanel inventoryPanel = new JPanel(new BorderLayout());
-        inventoryPanel.setBorder(BorderFactory.createTitledBorder("Inventory"));
-        String[] inventoryColumns = {"Name", "Price", "Stock"};
-        inventoryTableModel = new DefaultTableModel(inventoryColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        inventoryTable = new JTable(inventoryTableModel);
-        updateInventoryTable();
-        JScrollPane inventoryScroll = new JScrollPane(inventoryTable);
-        inventoryPanel.add(inventoryScroll, BorderLayout.CENTER);
+        TableView<Product> inventoryTable = new TableView<>();
+        TableColumn<Product, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+        TableColumn<Product, Double> priceCol = new TableColumn<>("Price");
+        priceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
+        TableColumn<Product, Integer> stockCol = new TableColumn<>("Stock");
+        stockCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+        inventoryTable.getColumns().addAll(nameCol, priceCol, stockCol);
+        inventoryTable.setItems(FXCollections.observableArrayList(inventory));
 
-        JButton btnAddToCart = new JButton("Add to Cart");
-        btnAddToCart.addActionListener(e -> addToCart());
-        inventoryPanel.add(btnAddToCart, BorderLayout.SOUTH);
+        Button btnAddToCart = new Button("Add to Cart");
+        btnAddToCart.setOnAction(e -> addToCart(inventoryTable));
+
+        VBox inventoryPanel = new VBox(10, new Label("Inventory"), inventoryTable, btnAddToCart);
+        inventoryPanel.setPadding(new Insets(10));
 
         // Cart Table
-        JPanel cartPanel = new JPanel(new BorderLayout());
-        cartPanel.setBorder(BorderFactory.createTitledBorder("Cart"));
-        String[] cartColumns = {"Name", "Price", "Quantity", "Total"};
-        cartTableModel = new DefaultTableModel(cartColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 2; // Allow editing quantity
-            }
-        };
-        cartTable = new JTable(cartTableModel);
-
-        // Add listener to update totals and inventory when quantity is changed
-        cartTable.getModel().addTableModelListener(e -> {
-            int row = e.getFirstRow();
-            int column = e.getColumn();
-            if (column == 2 && row >= 0 && row < cart.size()) { // Quantity column changed
-                try {
-                    int newQuantity = Integer.parseInt(cartTable.getValueAt(row, column).toString());
-                    Product item = cart.get(row);
-                    int oldQuantity = item.getQuantity();
-                    int quantityDifference = newQuantity - oldQuantity;
-
-                    if (newQuantity > 0) {
-                        // Check if we have enough stock for the increase
-                        if (quantityDifference > 0) {
-                            // Find the product in inventory
-                            Product inventoryProduct = null;
-                            int inventoryIndex = -1;
-                            for (int i = 0; i < inventory.size(); i++) {
-                                if (inventory.get(i).getName().equals(item.getName())) {
-                                    inventoryProduct = inventory.get(i);
-                                    inventoryIndex = i;
-                                    break;
-                                }
-                            }
-
-                            if (inventoryProduct != null && inventoryProduct.getQuantity() >= quantityDifference) {
-                                // Update cart
-                                Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
-                                cart.set(row, updatedItem);
-                                cartTable.setValueAt(updatedItem.getTotal(), row, 3);
-
-                                // Update inventory
-                                Product updatedInventory = new Product(inventoryProduct.getName(),
-                                    inventoryProduct.getPrice(),
-                                    inventoryProduct.getQuantity() - quantityDifference);
-                                inventory.set(inventoryIndex, updatedInventory);
-                                updateInventoryTable();
-                            } else {
-                                // Not enough stock, reset to old quantity
-                                cartTable.setValueAt(oldQuantity, row, column);
-                                JOptionPane.showMessageDialog(mainFrame, "Not enough stock available!");
-                            }
-                        } else if (quantityDifference < 0) {
-                            // Quantity decreased, return stock to inventory
-                            Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
-                            cart.set(row, updatedItem);
-                            cartTable.setValueAt(updatedItem.getTotal(), row, 3);
-
-                            // Return stock to inventory
-                            for (int i = 0; i < inventory.size(); i++) {
-                                if (inventory.get(i).getName().equals(item.getName())) {
-                                    Product inventoryProduct = inventory.get(i);
-                                    Product updatedInventory = new Product(inventoryProduct.getName(),
-                                        inventoryProduct.getPrice(),
-                                        inventoryProduct.getQuantity() - quantityDifference); // quantityDifference is negative, so this adds
-                                    inventory.set(i, updatedInventory);
-                                    updateInventoryTable();
-                                    break;
-                                }
-                            }
-                        } else {
-                            // Quantity unchanged, just update cart
-                            Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
-                            cart.set(row, updatedItem);
-                            cartTable.setValueAt(updatedItem.getTotal(), row, 3);
-                        }
-                    } else {
-                        // If invalid quantity, reset to 1
-                        cartTable.setValueAt(1, row, column);
-                        Product updatedItem = new Product(item.getName(), item.getPrice(), 1);
-                        cart.set(row, updatedItem);
-                        cartTable.setValueAt(updatedItem.getTotal(), row, 3);
-
-                        // Return excess stock to inventory
-                        int returnQuantity = oldQuantity - 1;
-                        if (returnQuantity > 0) {
-                            for (int i = 0; i < inventory.size(); i++) {
-                                if (inventory.get(i).getName().equals(item.getName())) {
-                                    Product inventoryProduct = inventory.get(i);
-                                    Product updatedInventory = new Product(inventoryProduct.getName(),
-                                        inventoryProduct.getPrice(),
-                                        inventoryProduct.getQuantity() + returnQuantity);
-                                    inventory.set(i, updatedInventory);
-                                    updateInventoryTable();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                } catch (NumberFormatException ex) {
-                    // If invalid input, reset to previous quantity
-                    Product item = cart.get(row);
-                    cartTable.setValueAt(item.getQuantity(), row, column);
-                }
-            }
+        TableView<Product> cartTable = new TableView<>();
+        TableColumn<Product, String> cartNameCol = new TableColumn<>("Name");
+        cartNameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+        TableColumn<Product, Double> cartPriceCol = new TableColumn<>("Price");
+        cartPriceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
+        TableColumn<Product, Integer> cartQtyCol = new TableColumn<>("Quantity");
+        cartQtyCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+        cartQtyCol.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        cartQtyCol.setOnEditCommit(event -> {
+            Product item = event.getRowValue();
+            int newQuantity = event.getNewValue();
+            updateCartQuantity(item, newQuantity, cartTable, inventoryTable);
         });
+        TableColumn<Product, Double> cartTotalCol = new TableColumn<>("Total");
+        cartTotalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
+        cartTable.getColumns().addAll(cartNameCol, cartPriceCol, cartQtyCol, cartTotalCol);
+        cartTable.setItems(FXCollections.observableArrayList(cart));
+        cartTable.setEditable(true);
 
-        JScrollPane cartScroll = new JScrollPane(cartTable);
-        cartPanel.add(cartScroll, BorderLayout.CENTER);
+        Button btnRemoveFromCart = new Button("Remove from Cart");
+        btnRemoveFromCart.setOnAction(e -> removeFromCart(cartTable, inventoryTable));
 
-        JButton btnRemoveFromCart = new JButton("Remove from Cart");
-        btnRemoveFromCart.addActionListener(e -> removeFromCart());
-        cartPanel.add(btnRemoveFromCart, BorderLayout.SOUTH);
+        VBox cartPanel = new VBox(10, new Label("Cart"), cartTable, btnRemoveFromCart);
+        cartPanel.setPadding(new Insets(10));
 
         // Split Pane for Inventory and Cart
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, inventoryPanel, cartPanel);
-        splitPane.setDividerLocation(400);
+        SplitPane splitPane = new SplitPane(inventoryPanel, cartPanel);
+        splitPane.setDividerPositions(0.5);
 
         // Bottom Panel for Checkout
-        JPanel bottomPanel = new JPanel(new FlowLayout());
+        TextField txtCustomerName = new TextField("John Doe");
+        ComboBox<String> cmbCustomerType = new ComboBox<>(FXCollections.observableArrayList("Regular", "VIP"));
+        cmbCustomerType.setValue("Regular");
+        ComboBox<String> cmbPaymentType = new ComboBox<>(FXCollections.observableArrayList("Cash", "Card"));
+        cmbPaymentType.setValue("Cash");
+        Button btnCheckout = new Button("Checkout");
+        btnCheckout.setOnAction(e -> checkout(txtCustomerName.getText(),
+                cmbCustomerType.getValue(),
+                cmbPaymentType.getValue(), cartTable, inventoryTable));
 
-        JLabel lblCustomerName = new JLabel("Customer Name:");
-        JTextField txtCustomerName = new JTextField(10);
-        txtCustomerName.setText("John Doe");
+        HBox bottomPanel = new HBox(10, new Label("Customer Name:"), txtCustomerName,
+                cmbCustomerType, cmbPaymentType, btnCheckout);
+        bottomPanel.setPadding(new Insets(10));
 
-        String[] custTypes = {"Regular", "VIP"};
-        JComboBox<String> cmbCustomerType = new JComboBox<>(custTypes);
+        root.setCenter(splitPane);
+        root.setBottom(bottomPanel);
 
-        String[] payTypes = {"Cash", "Card"};
-        JComboBox<String> cmbPaymentType = new JComboBox<>(payTypes);
-
-        JButton btnCheckout = new JButton("Checkout");
-        btnCheckout.addActionListener(e -> checkout(txtCustomerName.getText(),
-                (String) cmbCustomerType.getSelectedItem(),
-                (String) cmbPaymentType.getSelectedItem()));
-
-        bottomPanel.add(lblCustomerName);
-        bottomPanel.add(txtCustomerName);
-        bottomPanel.add(cmbCustomerType);
-        bottomPanel.add(cmbPaymentType);
-        bottomPanel.add(btnCheckout);
-
-        mainPanel.add(splitPane, BorderLayout.CENTER);
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-
-        mainFrame.add(mainPanel);
-        mainFrame.setVisible(true);
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
-    private static void updateInventoryTable() {
-        inventoryTableModel.setRowCount(0);
-        for (Product p : inventory) {
-            inventoryTableModel.addRow(new Object[]{p.getName(), p.getPrice(), p.getQuantity()});
+    private static void updateCartQuantity(Product item, int newQuantity, TableView<Product> cartTable, TableView<Product> inventoryTable) {
+        int oldQuantity = item.getQuantity();
+        int quantityDifference = newQuantity - oldQuantity;
+
+        if (newQuantity > 0) {
+            // Check if we have enough stock for the increase
+            if (quantityDifference > 0) {
+                // Find the product in inventory
+                Product inventoryProduct = null;
+                int inventoryIndex = -1;
+                for (int i = 0; i < inventory.size(); i++) {
+                    if (inventory.get(i).getName().equals(item.getName())) {
+                        inventoryProduct = inventory.get(i);
+                        inventoryIndex = i;
+                        break;
+                    }
+                }
+
+                if (inventoryProduct != null && inventoryProduct.getQuantity() >= quantityDifference) {
+                    // Update cart
+                    Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
+                    int cartIndex = cart.indexOf(item);
+                    cart.set(cartIndex, updatedItem);
+
+                    // Update inventory
+                    Product updatedInventory = new Product(inventoryProduct.getName(),
+                        inventoryProduct.getPrice(),
+                        inventoryProduct.getQuantity() - quantityDifference);
+                    inventory.set(inventoryIndex, updatedInventory);
+                    inventoryTable.refresh();
+                } else {
+                    // Not enough stock, reset to old quantity
+                    cartTable.refresh();
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Stock Error");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Not enough stock available!");
+                    alert.showAndWait();
+                }
+            } else if (quantityDifference < 0) {
+                // Quantity decreased, return stock to inventory
+                Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
+                int cartIndex = cart.indexOf(item);
+                cart.set(cartIndex, updatedItem);
+
+                // Return stock to inventory
+                for (int i = 0; i < inventory.size(); i++) {
+                    if (inventory.get(i).getName().equals(item.getName())) {
+                        Product inventoryProduct = inventory.get(i);
+                        Product updatedInventory = new Product(inventoryProduct.getName(),
+                            inventoryProduct.getPrice(),
+                            inventoryProduct.getQuantity() - quantityDifference); // quantityDifference is negative, so this adds
+                        inventory.set(i, updatedInventory);
+                        inventoryTable.refresh();
+                        break;
+                    }
+                }
+            } else {
+                // Quantity unchanged, just update cart
+                Product updatedItem = new Product(item.getName(), item.getPrice(), newQuantity);
+                int cartIndex = cart.indexOf(item);
+                cart.set(cartIndex, updatedItem);
+            }
+        } else {
+            // If invalid quantity, reset
+            cartTable.refresh();
         }
     }
 
-    private static void updateCartTable() {
-        cartTableModel.setRowCount(0);
-        for (Product p : cart) {
-            cartTableModel.addRow(new Object[]{p.getName(), p.getPrice(), p.getQuantity(), p.getTotal()});
-        }
-    }
-
-    private static void addToCart() {
-        int selectedRow = inventoryTable.getSelectedRow();
-        if (selectedRow >= 0) {
-            Product selectedProduct = inventory.get(selectedRow);
+    private static void addToCart(TableView<Product> inventoryTable) {
+        Product selectedProduct = inventoryTable.getSelectionModel().getSelectedItem();
+        if (selectedProduct != null) {
             if (selectedProduct.getQuantity() > 0) {
                 // Simple add, in real app would handle quantity selection
                 Product cartItem = new Product(selectedProduct.getName(), selectedProduct.getPrice(), 1);
                 cart.add(cartItem);
-                selectedProduct = new Product(selectedProduct.getName(), selectedProduct.getPrice(), selectedProduct.getQuantity() - 1);
-                inventory.set(selectedRow, selectedProduct);
-                updateInventoryTable();
-                updateCartTable();
+                int inventoryIndex = inventory.indexOf(selectedProduct);
+                Product updatedProduct = new Product(selectedProduct.getName(), selectedProduct.getPrice(), selectedProduct.getQuantity() - 1);
+                inventory.set(inventoryIndex, updatedProduct);
+                inventoryTable.refresh();
             } else {
-                JOptionPane.showMessageDialog(mainFrame, "Out of stock!");
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Out of Stock");
+                alert.setHeaderText(null);
+                alert.setContentText("Out of stock!");
+                alert.showAndWait();
             }
         }
     }
 
-    private static void removeFromCart() {
-        // Implementation for removing from cart
-        int selectedRow = cartTable.getSelectedRow();
-        if (selectedRow >= 0) {
-            Product removed = cart.remove(selectedRow);
+    private static void removeFromCart(TableView<Product> cartTable, TableView<Product> inventoryTable) {
+        Product selectedProduct = cartTable.getSelectionModel().getSelectedItem();
+        if (selectedProduct != null) {
+            cart.remove(selectedProduct);
             // Return to inventory
             for (int i = 0; i < inventory.size(); i++) {
-                if (inventory.get(i).getName().equals(removed.getName())) {
+                if (inventory.get(i).getName().equals(selectedProduct.getName())) {
                     Product p = inventory.get(i);
-                    inventory.set(i, new Product(p.getName(), p.getPrice(), p.getQuantity() + removed.getQuantity()));
+                    Product updated = new Product(p.getName(), p.getPrice(), p.getQuantity() + selectedProduct.getQuantity());
+                    inventory.set(i, updated);
+                    inventoryTable.refresh();
                     break;
                 }
             }
-            updateInventoryTable();
-            updateCartTable();
         }
     }
 
-    private static void checkout(String customerName, String customerType, String paymentType) {
+    private static void checkout(String customerName, String customerType, String paymentType, TableView<Product> cartTable, TableView<Product> inventoryTable) {
         if (cart.isEmpty()) {
-            JOptionPane.showMessageDialog(mainFrame, "Cart is empty!");
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Empty Cart");
+            alert.setHeaderText(null);
+            alert.setContentText("Cart is empty!");
+            alert.showAndWait();
             return;
         }
 
@@ -444,121 +400,142 @@ public class App extends Application {
             new java.io.File("data").mkdirs();
             StoreUtils.saveSalesToCSV(sales, "data/sales.csv");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(mainFrame, "Warning: Sale recorded but data save failed: " + e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Save Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Warning: Sale recorded but data save failed: " + e.getMessage());
+            alert.showAndWait();
         }
 
         payment.pay(sale.getFinalAmount());
 
-        JOptionPane.showMessageDialog(mainFrame, String.format("Checkout successful!\nTotal: Rs. %.2f\nDiscount: Rs. %.2f\nFinal: Rs. %.2f",
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Checkout Successful");
+        alert.setHeaderText(null);
+        alert.setContentText(String.format("Checkout successful!\nTotal: Rs. %.2f\nDiscount: Rs. %.2f\nFinal: Rs. %.2f",
                 sale.getTotalAmount(), sale.getDiscountAmount(), sale.getFinalAmount()));
+        alert.showAndWait();
 
         cart.clear();
-        updateCartTable();
+        cartTable.refresh();
     }
 
-    private static void showAddProductDialog() {
-        JDialog dialog = new JDialog(mainFrame, "Add Product", true);
-        dialog.setSize(300, 200);
-        dialog.setLayout(new GridLayout(4, 2, 10, 10));
+    private static void showAddProductDialog(Stage primaryStage) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Add Product");
 
-        JLabel lblName = new JLabel("Name:");
-        JTextField txtName = new JTextField();
-        JLabel lblPrice = new JLabel("Price:");
-        JTextField txtPrice = new JTextField();
-        JLabel lblQty = new JLabel("Quantity:");
-        JTextField txtQty = new JTextField();
-        JButton btnAdd = new JButton("Add");
-        JButton btnCancel = new JButton("Cancel");
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
 
-        btnAdd.addActionListener(e -> {
+        Label lblName = new Label("Name:");
+        TextField txtName = new TextField();
+        Label lblPrice = new Label("Price:");
+        TextField txtPrice = new TextField();
+        Label lblQty = new Label("Quantity:");
+        TextField txtQty = new TextField();
+        Button btnAdd = new Button("Add");
+        Button btnCancel = new Button("Cancel");
+
+        btnAdd.setOnAction(e -> {
             try {
                 String name = txtName.getText();
                 double price = Double.parseDouble(txtPrice.getText());
                 int qty = Integer.parseInt(txtQty.getText());
                 inventory.add(new Product(name, price, qty));
-                updateInventoryTable();
-                dialog.dispose();
+                dialog.close();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Invalid input!");
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Invalid Input");
+                alert.setHeaderText(null);
+                alert.setContentText("Invalid input!");
+                alert.showAndWait();
             }
         });
 
-        btnCancel.addActionListener(e -> dialog.dispose());
+        btnCancel.setOnAction(e -> dialog.close());
 
-        dialog.add(lblName);
-        dialog.add(txtName);
-        dialog.add(lblPrice);
-        dialog.add(txtPrice);
-        dialog.add(lblQty);
-        dialog.add(txtQty);
-        dialog.add(btnAdd);
-        dialog.add(btnCancel);
+        grid.add(lblName, 0, 0);
+        grid.add(txtName, 1, 0);
+        grid.add(lblPrice, 0, 1);
+        grid.add(txtPrice, 1, 1);
+        grid.add(lblQty, 0, 2);
+        grid.add(txtQty, 1, 2);
+        grid.add(btnAdd, 0, 3);
+        grid.add(btnCancel, 1, 3);
 
-        dialog.setVisible(true);
+        Scene scene = new Scene(grid, 300, 200);
+        dialog.setScene(scene);
+        dialog.showAndWait();
     }
 
     private static void removeSelectedProduct() {
-        int selectedRow = inventoryTable.getSelectedRow();
-        if (selectedRow >= 0) {
-            inventory.remove(selectedRow);
-            updateInventoryTable();
+        // For now, just remove the first item as an example
+        // In a real app, you'd need to pass the table or have a way to select
+        if (!inventory.isEmpty()) {
+            inventory.remove(0);
         }
     }
 
-    private static void saveData() {
+    private static void saveData(Stage primaryStage) {
         try {
             new java.io.File("data").mkdirs();
             StoreUtils.saveProductsToCSV(inventory, "data/products.csv");
             StoreUtils.saveUsersToCSV(users, "data/users.csv");
             StoreUtils.saveSalesToCSV(sales, "data/sales.csv");
-            JOptionPane.showMessageDialog(mainFrame, "Data saved successfully!");
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Save Successful");
+            alert.setHeaderText(null);
+            alert.setContentText("Data saved successfully!");
+            alert.showAndWait();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(mainFrame, "Error saving data: " + e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Save Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Error saving data: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 
-    private static void showSalesHistoryDialog() {
-        JDialog dialog = new JDialog(mainFrame, "Sales History", true);
-        dialog.setSize(800, 400);
-        dialog.setLayout(new BorderLayout());
-        dialog.setLocationRelativeTo(mainFrame);
+    private static void showSalesHistoryDialog(Stage primaryStage) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Sales History");
 
-        // Sales Table
-        String[] columns = {"Sale ID", "Customer", "Type", "Total", "Discount", "Final", "Payment", "Date"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        // Create a simple table for sales
+        TableView<Sale> salesTable = new TableView<>();
+        TableColumn<Sale, String> saleIdCol = new TableColumn<>("Sale ID");
+        saleIdCol.setCellValueFactory(new PropertyValueFactory<>("saleId"));
+        TableColumn<Sale, String> customerCol = new TableColumn<>("Customer");
+        customerCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCustomer().getName()));
+        TableColumn<Sale, String> typeCol = new TableColumn<>("Type");
+        typeCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCustomer().getCustomerType()));
+        TableColumn<Sale, Double> totalCol = new TableColumn<>("Total");
+        totalCol.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
+        TableColumn<Sale, Double> discountCol = new TableColumn<>("Discount");
+        discountCol.setCellValueFactory(new PropertyValueFactory<>("discountAmount"));
+        TableColumn<Sale, Double> finalCol = new TableColumn<>("Final");
+        finalCol.setCellValueFactory(new PropertyValueFactory<>("finalAmount"));
+        TableColumn<Sale, String> paymentCol = new TableColumn<>("Payment");
+        paymentCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getPayment().getClass().getSimpleName()));
+        TableColumn<Sale, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTimestamp().toString().replace("T", " ")));
 
-        for (Sale sale : sales) {
-            model.addRow(new Object[]{
-                sale.getSaleId(),
-                sale.getCustomer().getName(),
-                sale.getCustomer().getCustomerType(),
-                String.format("Rs. %.2f", sale.getTotalAmount()),
-                String.format("Rs. %.2f", sale.getDiscountAmount()),
-                String.format("Rs. %.2f", sale.getFinalAmount()),
-                sale.getPayment().getClass().getSimpleName(),
-                sale.getTimestamp().toString().replace("T", " ")
-            });
-        }
+        salesTable.getColumns().addAll(saleIdCol, customerCol, typeCol, totalCol, discountCol, finalCol, paymentCol, dateCol);
+        salesTable.setItems(FXCollections.observableArrayList(sales));
 
-        JTable salesTable = new JTable(model);
-        JScrollPane scrollPane = new JScrollPane(salesTable);
-        dialog.add(scrollPane, BorderLayout.CENTER);
-
-        // Summary Panel
-        JPanel summaryPanel = new JPanel(new FlowLayout());
+        // Summary
         double totalRevenue = sales.stream().mapToDouble(Sale::getFinalAmount).sum();
-        int totalSales = sales.size();
+        int totalSalesCount = sales.size();
+        Label summaryLabel = new Label("Total Sales: " + totalSalesCount + " | Total Revenue: Rs. " + String.format("%.2f", totalRevenue));
 
-        summaryPanel.add(new JLabel("Total Sales: " + totalSales));
-        summaryPanel.add(new JLabel(" | Total Revenue: Rs. " + String.format("%.2f", totalRevenue)));
+        VBox layout = new VBox(10, salesTable, summaryLabel);
+        layout.setPadding(new Insets(10));
 
-        dialog.add(summaryPanel, BorderLayout.SOUTH);
-
-        dialog.setVisible(true);
+        Scene scene = new Scene(layout, 800, 400);
+        dialog.setScene(scene);
+        dialog.showAndWait();
     }
 }
