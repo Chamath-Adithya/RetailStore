@@ -5,29 +5,39 @@ A comprehensive JavaFX application demonstrating Object-Oriented Programming (OO
 ## 🧱 Project Structure
 
 ```
-RetailStoreGUI/
+RetailStore/
 ├── README.md
-├── lib/                        # External libraries (if needed)
+├── pom.xml                     # Maven build configuration
+├── .gitignore                  # Git ignore file
+├── data/                       # CSV data files
+│   ├── products.csv
+│   ├── users.csv
+│   └── sales.csv
 ├── src/
-│   ├── App.java                # Main entry point
-│   ├── gui/                    # GUI classes (Swing forms, panels, frames)
-│   │   ├── MainFrame.java
-│   │   ├── ProductPanel.java
-│   │   ├── CustomerPanel.java
-│   │   └── BillingPanel.java
-│   ├── model/                  # Business logic and OOP models
-│   │   ├── Product.java
-│   │   ├── Customer.java
-│   │   ├── Sale.java
-│   │   └── Payment.java
-│   ├── service/                # Classes handling logic between model and GUI
-│   │   ├── ProductService.java
-│   │   ├── CustomerService.java
-│   │   └── SalesService.java
-│   └── util/                   # Helper functions (like file saving, validation)
-│       ├── FileHandler.java
-│       └── Validator.java
-└── bin/                        # Compiled .class files
+│   ├── main/
+│   │   ├── java/
+│   │   │   ├── module-info.java
+│   │   │   └── retailstore/
+│   │   │       ├── App.java                # Main JavaFX application
+│   │   │       ├── model/                  # Business logic and OOP models
+│   │   │       │   ├── Product.java
+│   │   │       │   ├── Customer.java
+│   │   │       │   ├── Sale.java
+│   │   │       │   ├── Payment.java
+│   │   │       │   ├── User.java
+│   │   │       │   └── VIPCustomer.java
+│   │   │       ├── payment/                # Payment implementations
+│   │   │       │   ├── CardPayment.java
+│   │   │       │   └── CashPayment.java
+│   │   │       ├── service/                # Business logic services
+│   │   │       │   ├── ProductService.java
+│   │   │       │   ├── CustomerService.java
+│   │   │       │   └── SalesService.java
+│   │   │       └── util/                   # Utility classes
+│   │   │           └── StoreUtils.java
+│   └── test/
+│       └── java/                           # Unit tests (future)
+└── target/                                 # Maven build output (generated)
 ```
 
 ## 🧩 Object-Oriented Programming (OOP) Concepts Demonstrated
@@ -282,42 +292,44 @@ public class Sale {
 | **Readability** | Code structure reflects real-world relationships |
 | **Reliability** | Type safety and encapsulation prevent bugs |
 
-## 🏃 How to Run (JavaFX Edition)
+## 🏃 How to Run (Maven Build)
 
 ### **Prerequisites:**
 - Java 11 or higher
-- JavaFX runtime libraries
+- Maven 3.6 or higher
 
-### **Method 1: With JavaFX Installed (Recommended)**
+### **Method 1: Using Maven (Recommended)**
 
 ```bash
-# Compile the application
-javac --module-path /usr/share/openjfx/lib --add-modules javafx.controls,javafx.fxml -d bin src/module-info.java src/model/*.java src/payment/*.java src/service/*.java src/util/*.java src/App.java
+# Compile and run the application
+mvn clean javafx:run
+```
+
+### **Method 2: Compile and Run Separately**
+
+```bash
+# Compile the project
+mvn clean compile
 
 # Run the application
-java --module-path /usr/share/openjfx/lib:bin --add-modules javafx.controls,javafx.fxml -m RetailStore/retailstore.App
+mvn javafx:run
 ```
 
-### **Method 2: Download JavaFX SDK**
+### **Method 3: Package as JAR**
 
 ```bash
-# Download JavaFX SDK
-wget https://download2.gluonhq.com/openjfx/17.0.2/openjfx-17.0.2_linux-x64_bin-sdk.zip
-unzip openjfx-17.0.2_linux-x64_bin-sdk.zip
+# Create a runnable JAR
+mvn clean package
 
-# Compile with JavaFX
-javac --module-path ./javafx-sdk-17.0.2/lib --add-modules javafx.controls,javafx.fxml -d bin src/module-info.java src/model/*.java src/payment/*.java src/service/*.java src/util/*.java src/App.java
-
-# Run with JavaFX
-java --module-path ./javafx-sdk-17.0.2/lib:bin --add-modules javafx.controls,javafx.fxml -m RetailStore/retailstore.App
+# Run the JAR (requires JavaFX runtime)
+java --module-path /path/to/javafx/lib --add-modules javafx.controls -jar target/RetailStore-1.0.0.jar
 ```
 
-### **Method 3: Using IDE (IntelliJ IDEA/VS Code)**
+### **Method 4: Using IDE (IntelliJ IDEA/VS Code)**
 
-1. **Install JavaFX Plugin** (if needed)
-2. **VM Options**: `--module-path /path/to/javafx/lib --add-modules javafx.controls,javafx.fxml`
-3. **Main Class**: `retailstore.App`
-4. **Run** the application
+1. **Import as Maven Project**
+2. **Ensure JavaFX is configured** (IDEs usually handle this automatically with Maven)
+3. **Run the main class**: `retailstore.App`
 
 ### **Default Login Credentials:**
 - **Admin**: `admin` / `admin123`
